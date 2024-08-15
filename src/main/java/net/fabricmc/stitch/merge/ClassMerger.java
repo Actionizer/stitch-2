@@ -23,10 +23,8 @@ import org.objectweb.asm.tree.*;
 import java.util.*;
 
 public class ClassMerger {
-    private static final String SIDE_DESCRIPTOR = "Lnet/fabricmc/api/EnvType;";
-    private static final String ITF_DESCRIPTOR = "Lnet/fabricmc/api/EnvironmentInterface;";
-    private static final String ITF_LIST_DESCRIPTOR = "Lnet/fabricmc/api/EnvironmentInterfaces;";
-    private static final String SIDED_DESCRIPTOR = "Lnet/fabricmc/api/Environment;";
+    private static final String CLIENT_ONLY_DESCRIPTOR = "org/muonmc/loader/api/game/minecraft/ClientOnly";
+    private static final String DEDICATED_SERVER_ONLY_DESCRIPTOR = "org/muonmc/loader/api/game/minecraft/DedicatedServerOnly";
 
     private abstract class Merger<T> {
         private final Map<String, T> entriesClient, entriesServer;
@@ -45,7 +43,7 @@ public class ClassMerger {
         public abstract String getName(T entry);
         public abstract void applySide(T entry, String side);
 
-        private final List<String> toMap(List<T> entries, Map<String, T> map) {
+        private List<String> toMap(List<T> entries, Map<String, T> map) {
             List<String> list = new ArrayList<>(entries.size());
             for (T entry : entries) {
                 String name = getName(entry);
@@ -73,16 +71,20 @@ public class ClassMerger {
         }
     }
 
-    private static void visitSideAnnotation(AnnotationVisitor av, String side) {
-        av.visitEnum("value", SIDE_DESCRIPTOR, side.toUpperCase(Locale.ROOT));
-        av.visitEnd();
+    private static String getSidedDescriptor(String side) {
+        switch (side) {
+            case "CLIENT":
+                return CLIENT_ONLY_DESCRIPTOR;
+            case "SERVER":
+                return DEDICATED_SERVER_ONLY_DESCRIPTOR;
+            default:
+                throw new RuntimeException("Invalid side " + side);
+        }
     }
 
     private static void visitItfAnnotation(AnnotationVisitor av, String side, List<String> itfDescriptors) {
-        for (String itf : itfDescriptors) {
-            AnnotationVisitor avItf = av.visitAnnotation(null, ITF_DESCRIPTOR);
-            avItf.visitEnum("value", SIDE_DESCRIPTOR, side.toUpperCase(Locale.ROOT));
-            avItf.visit("itf", Type.getType("L" + itf + ";"));
+        for (String ignored : itfDescriptors) {
+            AnnotationVisitor avItf = av.visitAnnotation(null, getSidedDescriptor(side));
             avItf.visitEnd();
         }
     }
@@ -97,8 +99,7 @@ public class ClassMerger {
 
         @Override
         public void visitEnd() {
-            AnnotationVisitor av = cv.visitAnnotation(SIDED_DESCRIPTOR, true);
-            visitSideAnnotation(av, side);
+            cv.visitAnnotation(getSidedDescriptor(side), true);
             super.visitEnd();
         }
     }
@@ -169,17 +170,12 @@ public class ClassMerger {
         }
 
         if (!clientItfs.isEmpty() || !serverItfs.isEmpty()) {
-            AnnotationVisitor envInterfaces = nodeOut.visitAnnotation(ITF_LIST_DESCRIPTOR, false);
-            AnnotationVisitor eiArray = envInterfaces.visitArray("value");
-
             if (!clientItfs.isEmpty()) {
-                visitItfAnnotation(eiArray, "CLIENT", clientItfs);
+                // do nothing
             }
             if (!serverItfs.isEmpty()) {
-                visitItfAnnotation(eiArray, "SERVER", serverItfs);
+                // do nothing
             }
-            eiArray.visitEnd();
-            envInterfaces.visitEnd();
         }
 
         new Merger<InnerClassNode>(nodeC.innerClasses, nodeS.innerClasses) {
@@ -201,8 +197,7 @@ public class ClassMerger {
 
             @Override
             public void applySide(FieldNode entry, String side) {
-                AnnotationVisitor av = entry.visitAnnotation(SIDED_DESCRIPTOR, false);
-                visitSideAnnotation(av, side);
+                entry.visitAnnotation(getSidedDescriptor(side), true);
             }
         }.merge(nodeOut.fields);
 
@@ -214,8 +209,7 @@ public class ClassMerger {
 
             @Override
             public void applySide(MethodNode entry, String side) {
-                AnnotationVisitor av = entry.visitAnnotation(SIDED_DESCRIPTOR, false);
-                visitSideAnnotation(av, side);
+                entry.visitAnnotation(getSidedDescriptor(side), true);
             }
         }.merge(nodeOut.methods);
 

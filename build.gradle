@@ -5,13 +5,11 @@ plugins {
 	id "net.minecrell.licenser" version "0.4.1"
 }
 
-sourceCompatibility = 1.8
-
 def ENV = System.getenv()
-version = "0.6.2" + (ENV.GITHUB_ACTIONS ? "" : "+local")
+version = "0.6.3" + (ENV.GITHUB_ACTIONS ? "" : "+local")
 
 group = 'net.fabricmc'
-archivesBaseName = project.name.toLowerCase()
+base.archivesName = project.name.toLowerCase()
 
 repositories {
 	mavenCentral()
@@ -35,7 +33,7 @@ dependencies {
 	ship 'org.ow2.asm:asm-tree:9.1'
 	ship 'org.ow2.asm:asm-util:9.1'
 	ship 'net.fabricmc:tiny-mappings-parser:0.3.0+build.17'
-	implementation 'com.google.guava:guava:28.0-jre'
+	implementation 'com.google.guava:guava:32.0.0-jre'
 	compileOnly 'org.jetbrains:annotations:20.1.0'
 
 	enigma 'cuchaz:enigma:0.23.2'
@@ -57,7 +55,7 @@ jar {
 	}
 }
 
-task allJar(type: Jar) {
+tasks.register('allJar', Jar) {
 	from {
 		configurations.ship.collect {
 			it.isDirectory() ? it : zipTree(it)
@@ -74,6 +72,8 @@ task allJar(type: Jar) {
 
 java {
 	withSourcesJar()
+	sourceCompatibility = 8
+	targetCompatibility = 8
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -112,15 +112,15 @@ test {
 }
 
 // A task to ensure that the version being released has not already been released.
-task checkVersion {
-	// doFirst {
-	// 	def xml = new URL("https://maven.fabricmc.net/net/fabricmc/stitch/maven-metadata.xml").text
-	// 	def metadata = new XmlSlurper().parseText(xml)
-	// 	def versions = metadata.versioning.versions.version*.text();
-	// 	if (versions.contains(version)) {
-	// 		throw new RuntimeException("${version} has already been released!")
-	// 	}
-	// }
+tasks.register('checkVersion') {
+	doFirst {
+		def xml = new URL("https://maven.muonmc.org/net/fabricmc/stitch/maven-metadata.xml").text
+		def metadata = new XmlSlurper().parseText(xml)
+		def versions = metadata.versioning.versions.version*.text();
+		if (versions.contains(version)) {
+			throw new RuntimeException("${version} has already been released!")
+		}
+	}
 }
 
 publish.mustRunAfter checkVersion
