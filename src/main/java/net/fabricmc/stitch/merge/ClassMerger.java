@@ -23,8 +23,8 @@ import org.objectweb.asm.tree.*;
 import java.util.*;
 
 public class ClassMerger {
-    private static final String CLIENT_ONLY_DESCRIPTOR = "org/muonmc/loader/api/game/minecraft/ClientOnly";
-    private static final String DEDICATED_SERVER_ONLY_DESCRIPTOR = "org/muonmc/loader/api/game/minecraft/DedicatedServerOnly";
+    private static final String CLIENT_ONLY_DESCRIPTOR = "Lorg/muonmc/loader/api/game/minecraft/ClientOnly;";
+    private static final String DEDICATED_SERVER_ONLY_DESCRIPTOR = "Lorg/muonmc/loader/api/game/minecraft/DedicatedServerOnly;";
 
     private abstract class Merger<T> {
         private final Map<String, T> entriesClient, entriesServer;
