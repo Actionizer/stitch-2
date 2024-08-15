@@ -6,7 +6,7 @@ plugins {
 }
 
 def ENV = System.getenv()
-version = "0.6.3" + (ENV.GITHUB_ACTIONS ? "" : "+local")
+version = "0.6.4" + (ENV.GITHUB_ACTIONS ? "" : "+local")
 
 group = 'net.fabricmc'
 base.archivesName = project.name.toLowerCase()
